@@ -1,10 +1,13 @@
+CC = clang
+CC_OPTIONS = -std=c11
+
 all : array.o io.o
 
 array.o : array.c
-	gcc -c array.c -o array.o
+	$(CC) $(CC_OPTIONS) -c array.c -o array.o
 
 io.o : io.c
-	gcc -c io.c -o io.o
+	$(CC) $(CC_OPTIONS) -c io.c -o io.o
 
 clean :
 	rm -f io.o array.o

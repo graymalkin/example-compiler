@@ -24,6 +24,7 @@
 
 #include <stdlib.h>
 #include <assert.h>
+#include <inttypes.h>
 
 /* Since the first element of an array will have a different type than the
  * rest, and the last dimension's array will have numbers rather than pointers. */
