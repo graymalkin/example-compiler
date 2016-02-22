@@ -1,6 +1,6 @@
 # For OS X
-# FORMAT = macho64
-# OPTIONS = -osx
+FORMAT = macho64
+OPTIONS = -osx
 
 # For Linux
 # FORMAT = elf64
@@ -9,7 +9,7 @@
 COMPILER = ../src/compile.byte
 EXEC_FILES = fact.exe array.exe insert_sort.exe
 
-.PHONY : all clean
+.PHONY : all clean-link-files
 
 all : $(EXEC_FILES)
 
@@ -31,5 +31,8 @@ all : $(EXEC_FILES)
 
 .PRECIOUS : %.s
 
+clean-link-files :
+	 rm -f *.o *.s
+
 clean :
-	rm -f *.o *.s $(EXEC_FILES)
+	rm -f *.o *.s *.exe
