@@ -7,13 +7,13 @@ OPTIONS = -osx
 # OPTIONS = -linux
 
 COMPILER = ../src/compile.byte
-EXEC_FILES = fact.exe array.exe insert_sort.exe
+EXEC_FILES = fact.exe array.exe insert_sort.exe div.exe
 
 .PHONY : all clean-link-files
 
 all : $(EXEC_FILES)
 
-%.s : %.expl $(COMPILER)
+%.s %.dot : %.expl $(COMPILER)
 	$(COMPILER) $(OPTIONS) $<
 
 %.o : %.s
@@ -28,6 +28,9 @@ all : $(EXEC_FILES)
 # stuff to sort out. gcc/libc include code to do that for us.
 %.exe : %.o ../runtime/io.o ../runtime/array.o
 	gcc ../runtime/io.o ../runtime/array.o $< -o $@
+
+%.pdf : %.dot
+	dot -Tpdf $< > $@
 
 .PRECIOUS : %.s
 
