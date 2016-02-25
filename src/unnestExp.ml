@@ -41,6 +41,7 @@ let is_atomic (e : exp) : bool =
   match e with
   | Num _ -> true
   | Bool _ -> true
+  | Float _ -> true
   | Ident (_, []) -> true
   | Ident (_, es) -> false
   | Op _ -> false
@@ -51,6 +52,7 @@ let is_flat (e : exp) : bool =
   match e with
   | Num _ -> true
   | Bool _ -> true
+  | Float _ -> true
   | Ident (_, []) -> true
   | Ident (_, [e]) -> is_atomic e
   | Ident (_, _) -> false
@@ -94,6 +96,7 @@ let rec unnest (stmts : stmt list) : stmt list =
   let rec unnest_exp (e : exp) : stmt list * exp =
     match e with
     | Num i -> ([], Num i)
+    | Float f -> ([], Float f)
     | Bool b -> ([], Bool b)
     | Ident (i, es) ->
       let (s_list, aes) = List.split (List.map unnest_exp_atomic es) in

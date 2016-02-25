@@ -39,6 +39,7 @@ end
 type atomic_exp =
   | Ident of var
   | Num of int64
+  | Float of float
   [@@deriving show]
 
 type block_elem =

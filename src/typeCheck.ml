@@ -25,12 +25,14 @@ module T = Tokens
 (* Types *)
 type t =
   | Tint
+  | Tfloat
   | Tbool
   | Tarray of int (* The number of dimensions that the array has *)
 
 let show_t t =
   match t with
   | Tint -> "int"
+  | Tfloat -> "float"
   | Tbool -> "bool"
   | Tarray n -> "array " ^ string_of_int n
 
@@ -72,16 +74,18 @@ let rec type_exp (ln : int option) (env : env_t) (e : exp) : t =
        else
          type_error ln ("Attempt to index non-array variable " ^ show_id i))
   | Num n -> Tint
+  | Float n -> Tfloat
   | Bool b -> Tbool
   | Op (e1, op, e2) ->
     (match (type_exp ln env e1, op, type_exp ln env e2) with
-     | (Tbool, (T.And | T.Or), Tbool) -> Tbool
-     | (Tint, (T.Plus | T.Minus | T.Times | T.Div | T.Lshift | T.BitOr |
-               T.BitAnd), Tint) ->
-       Tint
-     | (Tint, (T.Lt | T.Eq | T.Gt), Tint) -> Tbool
-     | (t1, _, t2) ->
-       type_error ln ("Operator " ^ T.show_op op ^ " applied to " ^ show_t t1 ^
+      | (Tbool, (T.And | T.Or), Tbool) -> Tbool
+      | (Tint, (T.Plus | T.Minus | T.Times | T.Div | T.Lshift | T.BitOr | T.BitAnd), Tint) ->
+        Tint
+      | (Tfloat, (T.Fplus | T.Fminus | T.Ftimes | T.Fdiv) , Tfloat) ->
+        Tfloat
+      | (Tint, (T.Lt | T.Eq | T.Gt), Tint) -> Tbool
+      | (t1, _, t2) ->
+        type_error ln ("Operator " ^ T.show_op op ^ " applied to " ^ show_t t1 ^
                       " and " ^ show_t t2))
   | Uop (uop, e) ->
     (match (uop, type_exp ln env e) with
