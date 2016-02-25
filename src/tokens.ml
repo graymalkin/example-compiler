@@ -30,6 +30,10 @@ type op =
   | Minus
   | Times
   | Div
+  | Fplus
+  | Fminus
+  | Ftimes
+  | Fdiv
   | Lt
   | Gt
   | Eq
@@ -50,6 +54,10 @@ let op_to_string op =
   | Minus -> "-"
   | Times -> "*"
   | Div -> "/"
+  | Fplus -> ".+"
+  | Fminus -> ".-"
+  | Fdiv -> "./"
+  | Ftimes -> ".*"
   | Lt -> "<"
   | Gt -> ">"
   | Eq -> "="
@@ -100,7 +108,7 @@ let keywords =
    (* Derive the mapping from the to_string functions to avoid duplication *)
    (uop_to_string Not, Uop Not)] @
   List.map (fun o -> (op_to_string o, Op o))
-    [Plus; Minus; Times; Div; Lt; Gt; Eq; And; Or; Lshift; BitOr; BitAnd]
+    [Fplus; Fminus; Ftimes; Fdiv; Plus; Minus; Times; Div; Lt; Gt; Eq; And; Or; Lshift; BitOr; BitAnd]
 
 (* Map each keyword string to its corresponding token *)
 let keyword_map : token Strmap.t =
@@ -140,7 +148,7 @@ let rec lex (s : string) (pos : int) (line_n : int) : tok_loc list =
       try
         float_of_string (Str.matched_string s)
       with
-      | _ -> raise (BadInput ("Floating point constant failed to lex " ^
+      | _ -> raise (BadInput ("Float constant failed to lex " ^
                          Str.matched_string s ^
                          " on line " ^
                          string_of_int line_n))

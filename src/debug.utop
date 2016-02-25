@@ -1,0 +1,14 @@
+#use "/Users/Tatskaari/.opam/system/lib/toplevel/topfind";;
+#require "ppx_deriving.std";;
+#require "str";;
+#require "extlib";;
+
+#load_rec "frontEnd.cmo";;
+#load_rec "unnestExp.cmo";;
+#load_rec "constProp.cmo";;
+
+let ast = FrontEnd.front_end "../tests/float.expl" false;;
+let (_, ast) = ConstProp.prop_stmts SourceAst.Idmap.empty ast;;
+let ast = UnnestExp.unnest ast;;
+
+#use "blockStructure.ml";;

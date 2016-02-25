@@ -45,6 +45,7 @@ module Idmap = Map.Make(Idord)
 (* AST of expressions *)
 type exp =
   | Ident of id * exp list
+  | Float of float
   | Num of int64
   | Bool of bool
   | Op of exp * T.op * exp
@@ -71,6 +72,7 @@ let rec pp_exp fmt exp =
       pp_id id
       (pp_array_list pp_exp) es
   | Num n -> Format.fprintf fmt "%Ld" n
+  | Float f -> Format.fprintf fmt "%f" f
   | Bool true -> Format.fprintf fmt "true"
   | Bool false -> Format.fprintf fmt "false"
   | Op (e1, op, e2) ->
@@ -159,6 +161,7 @@ let rec parse_atomic_exp (toks : T.tok_loc list) : exp * T.tok_loc list =
     let (indices, toks) = parse_indices toks in
     (Ident (Source i, indices), toks)
   | (T.Num n, _) :: toks -> (Num n, toks)
+  | (T.Float n, _) :: toks -> (Float n, toks)
   | (T.True, _) :: toks -> (Bool true, toks)
   | (T.False, _) :: toks -> (Bool false, toks)
   | (T.Op T.Minus, _) :: toks ->

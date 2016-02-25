@@ -28,6 +28,7 @@ module Idmap : Map.S with type key = id
 
 type exp =
   | Ident of id * exp list
+  | Float of float
   | Num of int64
   | Bool of bool
   | Op of exp * Tokens.op * exp
