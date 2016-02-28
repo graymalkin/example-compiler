@@ -1,10 +1,14 @@
 # For OS X
-# FORMAT = macho64
-# OPTIONS = -osx
-
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+    FORMAT = macho64
+    OPTIONS = -osx
+endif
 # For Linux
-# FORMAT = elf64
-# OPTIONS = -linux
+ifeq ($(UNAME_S),Linux)
+    FORMAT = elf64
+    OPTIONS = -linux
+endif
 
 COMPILER = ../src/compile.byte
 EXEC_FILES = fact.exe array.exe insert_sort.exe div.exe
