@@ -23,6 +23,10 @@ type op =
   | Minus
   | Times
   | Div
+  | Fplus
+  | Fminus
+  | Ftimes
+  | Fdiv
   | Lt
   | Gt
   | Eq
@@ -42,6 +46,7 @@ val uop_to_string : uop -> string
 
 type token =
   | Num of int64
+  | Float of float
   | Ident of string
   | Op of op
   | Uop of uop

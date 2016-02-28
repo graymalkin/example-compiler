@@ -58,11 +58,13 @@ module Varmap = Map.Make(VarCmp)
 type atomic_exp =
   | Ident of var
   | Num of int64
+  | Float of float
 
 let show_atomic_exp ae =
   match ae with
   | Ident v -> show_var v
-  | Num i -> [%show: int64] i
+  | Num i -> Int64.to_string i
+  | Float f -> string_of_float f
 
 let pp_atomic_exp fmt ae =
   Format.fprintf fmt "%s" (show_atomic_exp ae)
@@ -223,6 +225,7 @@ let exp_to_atomic (e : S.exp) : atomic_exp =
   match e with
   | S.Ident (id, []) -> Ident (id_to_var id)
   | S.Num n -> Num n
+  | S.Float f -> Float f
   | S.Bool b -> bool_to_num b
   | S.Ident (_, _::_) | S.Op _ | S.Uop _ | S.Array _ ->
     raise (InternalError "non-flat expression in blockStructure")
@@ -255,6 +258,7 @@ let flat_e_to_assign (x : S.id) (e : S.exp) : block_elem list =
   | S.Ident (id, _::_::_) ->
     raise (InternalError "multi-dimension array index in blockStructure")
   | S.Num n -> [AssignAtom (v, Num n)]
+  | S.Float f -> [AssignAtom (v, Float f)]
   | S.Bool b -> [AssignAtom (v, bool_to_num b)]
   | S.Op (ae1, op, ae2) ->
     [AssignOp (v, exp_to_atomic ae1, op, exp_to_atomic ae2)]
@@ -280,6 +284,8 @@ let flat_exp_to_test (e : S.exp) : test =
     raise (InternalError "array index in test position in blockStructure")
   | S.Num n ->
     raise (InternalError "number in test position in blockStructure")
+  | S.Float f ->
+    raise (InternalError "float in test position in blockStructure")
   | S.Bool b ->
     (bool_to_num b, Eq, Num 1L)
   | S.Op (ae1, op, ae2) ->

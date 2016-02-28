@@ -1,19 +1,19 @@
 # For OS X
-# FORMAT = macho64
-# OPTIONS = -osx
+FORMAT = macho64
+OPTIONS = -osx
 
 # For Linux
 # FORMAT = elf64
 # OPTIONS = -linux
 
 COMPILER = ../src/compile.byte
-EXEC_FILES = fact.exe array.exe insert_sort.exe
+EXEC_FILES = fact.exe array.exe insert_sort.exe div.exe
 
-.PHONY : all clean
+.PHONY : all clean-link-files
 
 all : $(EXEC_FILES)
 
-%.s : %.expl $(COMPILER)
+%.s %.dot : %.expl $(COMPILER)
 	$(COMPILER) $(OPTIONS) $<
 
 %.o : %.s
@@ -29,7 +29,13 @@ all : $(EXEC_FILES)
 %.exe : %.o ../runtime/io.o ../runtime/array.o
 	gcc ../runtime/io.o ../runtime/array.o $< -o $@
 
+%.pdf : %.dot
+	dot -Tpdf $< > $@
+
 .PRECIOUS : %.s
 
+clean-link-files :
+	 rm -f *.o *.s
+
 clean :
-	rm -f *.o *.s $(EXEC_FILES)
+	rm -f *.o *.s *.exe

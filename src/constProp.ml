@@ -44,7 +44,7 @@ let rec might_have_effect (e : exp) : bool =
   match e with
   | Ident (i, []) -> false
   | Ident (i, es) -> true (* Array bound check failure *)
-  | Num _ | Bool _ -> false
+  | Num _ | Bool _ | Float _ -> false
   | Op (e1, op, e2) ->
     if op = T.Div then
       true (* Divide by zero error *)
@@ -76,6 +76,7 @@ let rec fold_exp (env : exp Idmap.t) (e : exp) : exp =
      with Not_found -> e)
   | Ident (i, es) -> Ident (i, List.map (fold_exp env) es)
   | Num n -> Num n
+  | Float f -> Float f
   | Bool b -> Bool b
   | Op (e1, op, e2) ->
     let o1 = fold_exp env e1 in
@@ -84,14 +85,20 @@ let rec fold_exp (env : exp Idmap.t) (e : exp) : exp =
      (* Plus *)
      | (Num n1, T.Plus, Num n2) -> Num (Int64.add n1 n2)
      | (Num 0L, T.Plus, e) | (e, T.Plus, Num 0L) -> e
+     | (Float f1, T.Fplus, Float f2) -> Float (f1+.f2)
+     | (Float 0.0, T.Fplus, e) | (e, T.Fplus, Float 0.0) -> e
+
+
 
      (* Minus *)
      | (Num n1, T.Minus, Num n2) -> Num (Int64.sub n1 n2)
      | (e, T.Minus, Num 0L) -> e
      | (e1, T.Minus, e2) when ok_remove_eq_exp e1 e2 -> Num 0L
+     | (Float f1, T.Fminus, Float f2) -> Float (f1 -. f2)
+     | (e, T.Fminus, Float 0.0) -> e
+     | (e1, T.Fminus, e2) when ok_remove_eq_exp e1 e2 -> Float 0.0
 
      (* Times *)
-     | (Num n1, T.Times, Num n2) -> Num (Int64.mul n1 n2)
      | (e, T.Times, Num 1L) | (Num 1L, T.Times, e) -> e
      | (Num -1L, T.Times, e) | (e, T.Times, Num -1L) ->
         Op (Num 0L, T.Minus, e)
@@ -107,20 +114,35 @@ let rec fold_exp (env : exp Idmap.t) (e : exp) : exp =
             Op (Num 0L, T.Minus, shift_op)
           else
             shift_op)
+     | (Float f1, T.Ftimes, Float f2) -> Float (f1 *. f2)
+     | (e, T.Ftimes, Float 1.0) | (Float 1.0, T.Ftimes, e) -> e
+     (* TODO: Confirm that this is actually an optimisation for floats *)
+     | (Float -1.0, T.Ftimes, e) | (e, T.Ftimes, Float -1.0) ->
+        Op (Float 0.0, T.Fminus, e)
+     | (Float 0.0, T.Ftimes, e) | (e, T.Ftimes, Float 0.0)
+       when not (might_have_effect e) ->
+         Float 0.0
 
      (* Div *)
      | (Num n1, T.Div, Num n2) when n2 <> 0L -> Num (Int64.div n1 n2)
+     | (Float f1, T.Div, Float f2) -> Float (f1 /. f2)
      | (e, T.Div, Num 1L) -> e
+     | (e, T.Fdiv, Float 1.0) -> e
+     (* TODO: Why isn't this optimisation being done for integers? *)
+     | (e, T.Fdiv, Float -1.0) -> Op (Float 0.0, T.Fminus, e)
 
      (* Less *)
+     (* TODO: Add Less operators for floats *)
      | (Num n1, T.Lt, Num n2) -> Bool (Int64.compare n1 n2 < 0)
      | (e1, T.Lt, e2) when ok_remove_eq_exp e1 e2 -> Bool false
 
      (* Greater *)
+     (* TODO: Add Greater operators for floats *)
      | (Num n1, T.Gt, Num n2) -> Bool (Int64.compare n1 n2 > 0)
      | (e1, T.Gt, e2) when ok_remove_eq_exp e1 e2 -> Bool false
 
      (* Equal *)
+     (* TODO: Add Equal operators for floats *)
      | (Num n1, T.Eq, Num n2) -> Bool (Int64.compare n1 n2 = 0)
      | (e1, T.Eq, e2) when ok_remove_eq_exp e1 e2 -> Bool true
 
@@ -173,7 +195,7 @@ let rec fold_exp (env : exp Idmap.t) (e : exp) : exp =
 
 let is_const (e : exp) : bool =
   match e with
-  | Num _ | Bool _ -> true
+  | Num _ | Bool _ | Float _ -> true
   | _ -> false
 
 let same_const (e1 : exp) (e2 : exp) : bool =

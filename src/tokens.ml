@@ -30,6 +30,10 @@ type op =
   | Minus
   | Times
   | Div
+  | Fplus
+  | Fminus
+  | Ftimes
+  | Fdiv
   | Lt
   | Gt
   | Eq
@@ -50,6 +54,10 @@ let op_to_string op =
   | Minus -> "-"
   | Times -> "*"
   | Div -> "/"
+  | Fplus -> ".+"
+  | Fminus -> ".-"
+  | Fdiv -> "./"
+  | Ftimes -> ".*"
   | Lt -> "<"
   | Gt -> ">"
   | Eq -> "="
@@ -65,6 +73,7 @@ let uop_to_string uop =
 
 type token =
   | Num of int64
+  | Float of float
   | Ident of string
   | Op of op
   | Uop of uop
@@ -99,7 +108,7 @@ let keywords =
    (* Derive the mapping from the to_string functions to avoid duplication *)
    (uop_to_string Not, Uop Not)] @
   List.map (fun o -> (op_to_string o, Op o))
-    [Plus; Minus; Times; Div; Lt; Gt; Eq; And; Or; Lshift; BitOr; BitAnd]
+    [Fplus; Fminus; Ftimes; Fdiv; Plus; Minus; Times; Div; Lt; Gt; Eq; And; Or; Lshift; BitOr; BitAnd]
 
 (* Map each keyword string to its corresponding token *)
 let keyword_map : token Strmap.t =
@@ -115,6 +124,7 @@ let number_re = Str.regexp "[0-9]+"
 let ident_re = Str.regexp "[a-zA-Z_][a-zA-Z0-9_]*"
 let space_re = Str.regexp "[ \t]+\\|//.*"
 let newline_re = Str.regexp "\n"
+let float_re = Str.regexp "[0-9]+.[0-9]+"
 
 (* Read all the tokens from s, using pos to index into the string and line_n
    to track the current line number, for error reporting later on. Return them
@@ -133,6 +143,17 @@ let rec lex (s : string) (pos : int) (line_n : int) : tok_loc list =
     (* Need the let because of OCaml's right-to-left evaluation *)
     let id = Str.matched_string s in
     (Ident id, line_n) :: lex s (Str.match_end ()) line_n
+  else if Str.string_match float_re s pos then
+    let float_num =
+      try
+        float_of_string (Str.matched_string s)
+      with
+      | _ -> raise (BadInput ("Float constant failed to lex " ^
+                         Str.matched_string s ^
+                         " on line " ^
+                         string_of_int line_n))
+    in
+    (Float float_num, line_n) :: lex s (Str.match_end ()) line_n
   else if Str.string_match number_re s pos then
     let num =
       try Int64.of_string (Str.matched_string s)
