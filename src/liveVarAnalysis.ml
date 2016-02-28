@@ -29,6 +29,7 @@ type cfg = (cfg_entry * cfg_annot) list
 let add_gen (a : atomic_exp) (gen : Varset.t) : Varset.t =
   match a with
   | Num _ -> gen
+  | Float _ -> gen
   | Ident i -> Varset.add i gen
 
 (* Add the identifiers in aes to the generation set *)
