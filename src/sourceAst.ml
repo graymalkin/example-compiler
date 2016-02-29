@@ -72,6 +72,10 @@ let rec pp_exp fmt exp =
     Format.fprintf fmt "%a%a"
       pp_id id
       (pp_array_list pp_exp) es
+  | FunctionCall (id, exps) ->
+     Format.fprintf fmt "%a%a"
+       pp_id id
+       (pp_array_list pp_exp) exps
   | Num n -> Format.fprintf fmt "%Ld" n
   | Float f -> Format.fprintf fmt "%f" f
   | Bool true -> Format.fprintf fmt "true"
@@ -121,6 +125,14 @@ let rec pp_stmt fmt stmt =
       pp_id id
       (pp_array_list pp_exp) es
       pp_exp e
+  | Function (id, params, stmts) ->
+     Format.fprintf fmt "@[<2>%a := function (%a){\n%a\n}@]"
+       pp_id id
+       (pp_array_list pp_id) params
+       pp_stmt stmts
+  | FunctionReturn exp ->
+     Format.fprintf fmt "@[<2>return %a@]"
+       pp_exp exp
   | DoWhile (Stmts [], e, s) ->
     Format.fprintf fmt "@[<2>while@ %a@ %a@]"
       pp_exp e
