@@ -94,6 +94,8 @@ type token =
   | Input
   | Output
   | Array
+  | Function
+  | Comma
   [@@deriving show]
 
 type tok_loc = (token * int)
@@ -103,7 +105,8 @@ let keywords =
   [("do", Do); ("while",While); ("if",If); ("then",Then); ("else",Else);
    ("array",Array); (":=",Assign); ("true",True); ("input", Input);
    ("output",Output); ("false",False); ("(",Lparen); (")",Rparen);
-   ("{",Lcurly); ("}",Rcurly); ("[",Lbrac); ("]",Rbrac);
+   ("{",Lcurly); ("}",Rcurly); ("[",Lbrac); ("]",Rbrac); 
+   ("function", Function); (",", Comma);
 
    (* Derive the mapping from the to_string functions to avoid duplication *)
    (uop_to_string Not, Uop Not)] @

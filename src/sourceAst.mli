@@ -39,6 +39,7 @@ type exp =
 
 type stmt =
   | Assign of id * exp list * exp
+  | Function of id * id list * stmt
   (* A generalised do/while loop. Always execute the first statement, then
      the test, then repeatedly do the 2nd, then first statement and then test
      'while e s' becomes DoWhile (Stmts [], e, s) and 'do s while e' becomes

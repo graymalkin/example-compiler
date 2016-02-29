@@ -1,4 +1,4 @@
-#use "/Users/Tatskaari/.opam/system/lib/toplevel/topfind";;
+#use "topfind";;
 #require "ppx_deriving.std";;
 #require "str";;
 #require "extlib";;
@@ -7,8 +7,7 @@
 #load_rec "unnestExp.cmo";;
 #load_rec "constProp.cmo";;
 
-let ast = FrontEnd.front_end "../tests/float.expl" false;;
-let (_, ast) = ConstProp.prop_stmts SourceAst.Idmap.empty ast;;
-let ast = UnnestExp.unnest ast;;
+let input = Std.input_file "../tests/functions.expl";;
+let toks = Tokens.lex input 0 1;;
 
-#use "blockStructure.ml";;
+#use "sourceAst.ml";;

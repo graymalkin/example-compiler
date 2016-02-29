@@ -90,7 +90,12 @@ let rec pp_exp fmt exp =
 
 (* AST of statements *)
 type stmt =
+  (* This type is for array assignment and normal assignment
+     id[x][y][z] := exp
+     id := exp
+  *)
   | Assign of id * exp list * exp
+  | Function of id * id list * stmt
   (* A generalised do/while loop. Always execute the first statement, then
      the test, then repeatedly do the 2nd, then first statement and then test
      'while e s' becomes DoWhile (Stmts [], e, s) and 'do s while e' becomes
@@ -204,6 +209,18 @@ and parse_indices (toks : T.tok_loc list) : exp list * T.tok_loc list =
 let rec parse_stmt (toks : T.tok_loc list) : stmt * T.tok_loc list =
   match toks with
   | [] -> raise (BadInput "End of file while parsing a statement")
+  | (T.Ident i, _) :: (T.Assign, _) :: (T.Function, ln) :: (T.Lparen, _) :: toks -> 
+     let rec build_param_list toks ids = 
+       match toks with
+       | (T.Ident i, _) :: (T.Rparen, _) :: toks ->
+	  ((Source i)::ids, toks)
+       | (T.Ident i, _) :: (T.Comma, _) :: toks ->
+	  build_param_list toks ((Source i)::ids)
+       | _ -> parse_error ln "error in function definition"
+     in
+     let (param_list, toks) = build_param_list toks [] in
+     let (stmt_list, toks) = parse_stmt toks in
+     (Function (Source i, param_list, stmt_list), toks)
   | (T.Ident x, ln) :: toks ->
     (match parse_indices toks with
      | (indices, (T.Assign, _) :: toks) ->

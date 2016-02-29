@@ -1,0 +1,6 @@
+{
+    fun := function (x, y, z) {
+    	a := 4
+	output a
+    }
+}
