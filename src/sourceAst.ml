@@ -244,6 +244,8 @@ let rec parse_stmt (toks : T.tok_loc list) : stmt * T.tok_loc list =
 	  ((Source i)::ids, toks)
        | (T.Ident i, _) :: (T.Comma, _) :: toks ->
 	  build_param_list toks ((Source i)::ids)
+       | (T.Rparen, _) :: toks ->
+	  (ids, toks)
        | _ -> parse_error ln "error in function definition"
      in
      let (param_list, toks) = build_param_list toks [] in
