@@ -1,6 +1,13 @@
 {
-    fun := function (x, y, z) {
-    	a := 4
-	output a
+    fact := function (n) {
+    	 if n = 0 then {
+	    return 1
+	 }
+	 else {
+	    return n * fact(n - 1)
+	 }
     }
+
+    z := fact(10)
+    output z
 }

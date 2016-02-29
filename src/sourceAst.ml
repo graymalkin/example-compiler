@@ -52,6 +52,7 @@ type exp =
   | Uop of T.uop * exp
   (* Allocate a new array of given dimensions. Initialise to 0 *)
   | Array of exp list
+  | FunctionCall of id * exp list
   [@@deriving show]
 
 let rec pp_array_list f fmt l =
@@ -106,6 +107,7 @@ type stmt =
   | In of id
   | Out of id
   | Loc of stmt * int (* annotate a statement with it's source line number *)
+  | FunctionReturn of exp
   [@@deriving show]
 
 let rec pp_stmt fmt stmt =
@@ -162,6 +164,17 @@ let parse_error (ln : int) (msg : string) : 'a =
 let rec parse_atomic_exp (toks : T.tok_loc list) : exp * T.tok_loc list =
   match toks with
   | [] -> raise (BadInput "End of file while parsing an expression")
+  | (T.Ident i, ln) :: (T.Lparen, _) :: toks ->
+     let rec build_param_list toks exprs = 
+       match parse_exp toks with
+       | (e, (T.Rparen, _) :: toks) ->
+	  (e::exprs, toks)
+       | (e, (T.Comma, _) :: toks) ->
+	  build_param_list toks (e::exprs)
+       | _ -> parse_error ln "error in function definition"
+     in
+     let (param_list, toks) = build_param_list toks [] in
+     (FunctionCall (Source i, param_list), toks)
   | (T.Ident i, ln) :: toks ->
     let (indices, toks) = parse_indices toks in
     (Ident (Source i, indices), toks)
@@ -209,6 +222,9 @@ and parse_indices (toks : T.tok_loc list) : exp list * T.tok_loc list =
 let rec parse_stmt (toks : T.tok_loc list) : stmt * T.tok_loc list =
   match toks with
   | [] -> raise (BadInput "End of file while parsing a statement")
+  | (T.Return, _) :: toks ->
+     let (e, toks) = parse_exp toks in
+     (FunctionReturn e, toks)
   | (T.Ident i, _) :: (T.Assign, _) :: (T.Function, ln) :: (T.Lparen, _) :: toks -> 
      let rec build_param_list toks ids = 
        match toks with

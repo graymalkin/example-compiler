@@ -35,6 +35,7 @@ type exp =
   | Uop of Tokens.uop * exp
   (* Allocate a new array of given dimensions. Initialise to 0 *)
   | Array of exp list
+  | FunctionCall of id * exp list
   [@@deriving show]
 
 type stmt =
@@ -50,6 +51,7 @@ type stmt =
   | In of id
   | Out of id
   | Loc of stmt * int (* annotate a statement with it's source line number *)
+  | FunctionReturn of exp
   [@@deriving show]
 
 val pp_stmts : Format.formatter -> stmt list -> unit
