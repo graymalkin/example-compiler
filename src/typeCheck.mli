@@ -21,5 +21,5 @@
 open SourceAst
 
 type t
-val type_stmts : int option -> t Idmap.t -> stmt list -> unit
+val type_stmts : int option -> t Idmap.t -> stmt list -> id option -> unit
 val remove_loc : stmt list -> stmt list

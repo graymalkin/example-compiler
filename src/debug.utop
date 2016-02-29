@@ -4,10 +4,10 @@
 #require "extlib";;
 
 #load_rec "frontEnd.cmo";;
-#load_rec "unnestExp.cmo";;
-#load_rec "constProp.cmo";;
 
 let input = Std.input_file "../tests/functions.expl";;
 let toks = Tokens.lex input 0 1;;
+let ast_man = SourceAst.parse_program toks;;
 
-#use "sourceAst.ml";;
+let ast = FrontEnd.front_end "../tests/functions.expl" false;;
+
