@@ -1,15 +1,10 @@
 {
     fact := function (n) {
-       total := 1
-       while n > 0 {
-           total := total * n
-	   n := n - 1
+       while true {
+         a := 1.0
+         return true
        }
-       if n > 100 then {
-       	  return 1
-       }
-       else {
-           return false
-       }
+      a:= 1
+       return 1
     }
 }

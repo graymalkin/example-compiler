@@ -51,11 +51,37 @@ let type_error (ln : int option) (msg : string) : 'a =
   | None ->
     raise (BadInput ("Type error at unknown location: " ^ msg))
 
-  
+let op_argument_type op : t =
+  match op with
+  | (T.Plus | T.Minus | T.Times | T.Div | T.Lt | T.Gt | T.Eq | T.Lshift | T.BitOr | T.BitAnd) -> Tint
+  | (T.Fplus | T.Fminus | T.Ftimes | T.Fdiv) -> Tfloat
+  | (T.And | T.Or) -> Tbool
 
+let op_result_type op : t =
+  match op with
+  | (T.Plus | T.Minus | T.Times | T.Div | T.Lshift | T.BitOr | T.BitAnd) -> Tint
+  | (T.Fplus | T.Fminus | T.Ftimes | T.Fdiv) -> Tfloat
+  | (T.And | T.Or | T.Lt | T.Gt | T.Eq) -> Tbool
+  
 (* Compute the type of an expression, or raise BadInput if there is a type
    error *)
 let rec type_exp (ln : int option) (env : env_t) (e : exp) : t*env_t =
+  let infer_ident_type ln exp op env : t*env_t =
+    let (exp_t, env) = type_exp ln env exp in
+    let op_arg_t = op_argument_type op in
+    let op_res_t = op_result_type op in
+    match exp with
+    | Ident (id, _) ->
+	(try 
+          (match Idmap.find id env with 
+	  | Tunknown -> (op_res_t, (Idmap.add id op_arg_t env))
+          | id_t when id_t <> op_arg_t -> type_error ln ("Op " ^ (T.show_op op) ^ " applied to " ^ (show_t id_t) ) 
+          | _ -> (op_res_t, env))   
+        with
+	  Not_found -> (op_res_t, (Idmap.add id op_arg_t env))) 
+    | _ when op_arg_t = exp_t -> (op_res_t, env)
+    | _ -> type_error ln ("Op " ^ (T.show_op op) ^ " applied to " ^ (show_t exp_t) )
+  in
   match e with
   | Ident (i, es) ->
     let t =
@@ -85,20 +111,8 @@ let rec type_exp (ln : int option) (env : env_t) (e : exp) : t*env_t =
   | FunctionCall (id, parameters) ->
      type_error ln "function call not implemented"
   | Op (e1, op, e2) ->
-     let (e1_t, env) = type_exp ln env e1 in
-     let (e2_t, env) = type_exp ln env e2 in
-     (match (e1_t, op, e2_t) with
-     | ((Tbool | Tunknown), (T.And | T.Or), (Tbool | Tunknown)) -> 
-	 (* Update types of e1 and e2 in env to be bools if unset *)
-	 (Tbool, env)
-     | (Tint, (T.Plus | T.Minus | T.Times | T.Div | T.Lshift | T.BitOr | T.BitAnd), Tint) ->
-        (Tint, env)
-     | (Tfloat, (T.Fplus | T.Fminus | T.Ftimes | T.Fdiv) , Tfloat) ->
-        (Tfloat, env)
-     | (Tint, (T.Lt | T.Eq | T.Gt), Tint) -> (Tbool, env)
-     | (t1, _, t2) ->
-        type_error ln ("Operator " ^ T.show_op op ^ " applied to " ^ show_t t1 ^
-                      " and " ^ show_t t2))
+    let (exp_t, env) = infer_ident_type ln e1 op env in
+    infer_ident_type ln e2 op env
   | Uop (uop, e) ->
     let (e_t, env) = type_exp ln env e in
     (match (uop, e_t) with
@@ -119,25 +133,51 @@ let rec type_exp (ln : int option) (env : env_t) (e : exp) : t*env_t =
    If it is already assigned, check its type. If it has not been assigned,
    extend the type environment *)
 let type_lhs_ident (env :env_t) (x : id) (t : t) (ln : int option) : env_t =
-  (match x with
-  | Source k -> Printf.printf "type_lhs_ident %s: %s\n" k (show_t t)
-  | Temp (k, _) -> Printf.printf "type_lhs_ident %s: %s\n" k (show_t t));
-  
   try
     let t_found = Idmap.find x env in
     match t_found with
-    | Tunknown -> Idmap.add x t env
+    | Tunknown -> 
+       let new_env = Idmap.add x t env in
+       (match x with
+	| Source k -> Printf.printf "type_lhs_ident %s: %s\n" k (show_t t)
+	| Temp (k, _) -> Printf.printf "type_lhs_ident %s: %s\n" k (show_t t));
+       new_env
     | _ when t_found = t -> env
     | _ -> type_error ln ("Bad type for " ^ show_id x)
   with Not_found ->
-    Idmap.add x t env
+    let new_env = Idmap.add x t env in
+    (match x with
+     | Source k -> Printf.printf "type_lhs_ident %s: %s\n" k (show_t t)
+     | Temp (k, _) -> Printf.printf "type_lhs_ident %s: %s\n" k (show_t t));
+    new_env
+
+let join_environments outer_env inner_env : env_t =
+  let contains k a b = 
+    match (a, b) with
+    | (Some Tunknown, Some inner) -> Some inner
+    | (None, Some _) -> None
+    | (Some outer, Some inner) when inner = outer ->
+       Some outer
+    | (Some outer, Some inner) ->
+       type_error (Some 0) ("Environment mismatch! Outer: " ^ (show_t outer) ^ " Inner: " ^ (show_t inner))
+    | _ -> type_error (Some 0) "error"
+  in
+  Idmap.merge contains outer_env inner_env
+
+let pp_env env =
+  let print_key k v = 
+    Printf.printf "key: %s, value %s\n" (show_id k) (show_t v);
+    ()
+  in
+  Idmap.iter print_key env;
+  Printf.printf "\n"
 
 (* Type check a list of statements. Raise BadInput if there is an error.  Check
    a list so that earlier assignment statements can extend the environment for
    later statements *)
-let rec type_stmts (ln : int option) (env :env_t) (stmts : stmt list) (fun_id : id option): unit =
+let rec type_stmts (ln : int option) (env :env_t) (stmts : stmt list) (fun_id : id option): env_t =
   match stmts with
-  | [] -> ()
+  | [] -> env
   | In x :: stmts' ->
     let env' = type_lhs_ident env x Tint ln in
     type_stmts ln env' stmts' fun_id
@@ -159,13 +199,14 @@ let rec type_stmts (ln : int option) (env :env_t) (stmts : stmt list) (fun_id : 
     (* Assignments to arrays require the lhs to be checkable as an expression.
        In particular, the identifier must already be bound to an array type of
        the correct dimension. *)
-    let t1 = type_exp ln env (Ident (x, es)) in
-    let t2 = type_exp ln env e in
+    let (t1, env) = type_exp ln env (Ident (x, es)) in
+    let (t2, env) = type_exp ln env e in
     if t1 = t2 then
       type_stmts ln env stmts' fun_id
     else
       type_error ln "Array assignment type mismatch"
   | Function (id, parameters, statements) :: stmts' ->
+     let env = type_lhs_ident env id Tunknown ln in
      let rec add_params params env = 
        match params with
        | [] -> env
@@ -174,33 +215,37 @@ let rec type_stmts (ln : int option) (env :env_t) (stmts : stmt list) (fun_id : 
 	  add_params params env
      in
      let env' = add_params parameters env in
-     type_stmts ln env' [statements] (Some id);
-     type_stmts ln env stmts' fun_id
+     let env' = type_stmts ln env' [statements] (Some id) in
+     type_stmts ln env' stmts' fun_id
   | FunctionReturn exp :: stmts' ->
      (match fun_id with
       | Some fun_id -> 
 	 let (exp_type, env) = type_exp ln env exp in
-	 let env = type_lhs_ident env fun_id exp_type ln in
+	 let env = type_lhs_ident env fun_id (Tfunction exp_type) ln in
 	 type_stmts ln env stmts' (Some fun_id)
       | None -> type_error ln "return statement not in a function")     
   | DoWhile (s1, e, s2) :: stmts ->
-    type_stmts ln env [s1] fun_id;
+    let env_s1 = type_stmts ln env [s1] fun_id in
     let (e_t, env) = type_exp ln env e in 
     if e_t = Tbool then
-      (type_stmts ln env [s2] fun_id;
+      (let env_s2 = type_stmts ln env [s2] fun_id in
+       let env = join_environments env env_s1 in
+       let env = join_environments env env_s2 in
        type_stmts ln env stmts fun_id)
     else
       type_error ln "While test of non-bool type"
   | Ite (e, s1, s2) :: stmts ->
     let (e_t, env) = type_exp ln env e in
     if e_t = Tbool then
-      (type_stmts ln env [s1] fun_id;
-       type_stmts ln env [s2] fun_id;
+      (let if_env = type_stmts ln env [s1] fun_id in
+       let else_env = type_stmts ln env [s2] fun_id in
+       let env = join_environments env if_env in
+       let env = join_environments env else_env in
        type_stmts ln env stmts fun_id)
     else
       type_error ln "If test of non-bool type"
   | Stmts (s_list) :: stmts' ->
-    (type_stmts ln env s_list fun_id;
+    (let env = type_stmts ln env s_list fun_id in
      type_stmts ln env stmts' fun_id)
   | Loc (s, ln') :: stmts' ->
     type_stmts (Some ln') env (s :: stmts') fun_id
