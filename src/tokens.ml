@@ -124,7 +124,7 @@ let number_re = Str.regexp "[0-9]+"
 let ident_re = Str.regexp "[a-zA-Z_][a-zA-Z0-9_]*"
 let space_re = Str.regexp "[ \t]+\\|//.*"
 let newline_re = Str.regexp "\n"
-let float_re = Str.regexp "[0-9]+.[0-9]+"
+let float_re = Str.regexp "[0-9]+\.[0-9]+"
 
 (* Read all the tokens from s, using pos to index into the string and line_n
    to track the current line number, for error reporting later on. Return them
