@@ -1,10 +1,16 @@
 {
-    fact := function (n) {
-       while true {
-         a := 1.0
-         return true
-       }
-      a:= 1
-       return 1
+    fact_t := function (n, total) {
+    	if n > 0 then {
+    		return fact_t(n-1, total * n)
+    	}
+    	else {
+    		return total
+    	}
     }
+
+    fact := function (k) {
+    	return fact_t(k, 1)
+    }
+
+    j:= fact(10)
 }
