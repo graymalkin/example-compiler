@@ -1,6 +1,4 @@
 {
-
-
     fact := function (k) {
     	total := 0
     	input total
@@ -10,7 +8,7 @@
     		k := k - 1
     	}
 
-    	return total
+    	return total+12
     }
 
     j := fact(10+5)
