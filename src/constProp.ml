@@ -298,6 +298,7 @@ let rec prop_stmts (env : exp Idmap.t) (stmts : stmt list)
     (env, Function(function_id, parameter_ids, new_body)::stmts)
   | FunctionReturn(expr)::stmts ->
     let folded_expr = fold_exp env expr in
+    let (env, stmts) = prop_stmts env stmts in
     (env, FunctionReturn(folded_expr)::stmts)
 
 and prop_stmt env (stmt : stmt) =
