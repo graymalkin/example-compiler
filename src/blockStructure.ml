@@ -81,6 +81,10 @@ type block_elem =
   | Call of var option * string * atomic_exp list
   (* BoundCheck (a1, a2) represents assert (a1 >= 0 && a1 < a2) *)
   | BoundCheck of atomic_exp * atomic_exp
+  (* FunctionStart (id) labels will be used to emit labels in the 
+     asm to identify the start of functions *)
+  | FunctionStart of string
+  | FunctionReturn of atomic_exp
 
 let pp_block_elem fmt be =
   match be with
@@ -104,6 +108,11 @@ let pp_block_elem fmt be =
       pp_var v
       pp_atomic_exp ae1
       pp_atomic_exp ae2
+  | FunctionStart name ->
+     Format.fprintf fmt "FunctionCall %s" name
+  | FunctionReturn ae ->
+     Format.fprintf fmt "return %a"
+       pp_atomic_exp ae
   | Call (Some v, x, aes) ->
     Format.fprintf fmt "%a := %s%a"
       pp_var v
@@ -152,6 +161,7 @@ let pp_test fmt (ae1, op, ae2) =
    the block number of the next block in the cfg. *)
 type next_block =
   | End
+  | EndOfFunction
   | Next of int
   (* The first int is the block number if the ident is true, and the second if
    * it is false *)
@@ -161,6 +171,7 @@ type next_block =
 let pp_next_block fmt nb =
   match nb with
   | End -> Format.fprintf fmt "END"
+  | EndOfFunction -> Format.fprintf fmt "END_OF_FUNCTION"
   | Next i -> Format.fprintf fmt "B%d" i
   | Branch (t,i1,i2) -> Format.fprintf fmt "if@ %a@ then@ B%d@ else@ B%d"
                           pp_test t
@@ -205,6 +216,7 @@ let cfg_to_graphviz fmt (cfg : cfg) : unit =
             Format.fprintf fmt "@\n";
             match entry.next with
             | End -> ()
+	    | EndOfFunction -> ()
             | Next i ->
               Format.fprintf fmt "%d->%d@\n" entry.bnum i
             | Branch (t, i1, i2) ->
@@ -227,7 +239,7 @@ let exp_to_atomic (e : S.exp) : atomic_exp =
   | S.Num n -> Num n
   | S.Float f -> Float f
   | S.Bool b -> bool_to_num b
-  | S.Ident (_, _::_) | S.Op _ | S.Uop _ | S.Array _ ->
+  | S.Ident (_, _::_) | S.Op _ | S.Uop _ | S.Array _ | S.FunctionCall (_, _) ->
     raise (InternalError "non-flat expression in blockStructure")
 
 let tmp_var = NamedTmp("BS", 0)
@@ -268,6 +280,9 @@ let flat_e_to_assign (x : S.id) (e : S.exp) : block_elem list =
   | S.Array es ->
     [Call (Some v, "allocate" ^ string_of_int (List.length es),
            List.map exp_to_atomic es)]
+  | S.FunctionCall (function_id, parameter_list) ->
+     [Call (Some v, (S.show_id function_id), 
+	    List.map exp_to_atomic parameter_list)]
 
 let op_to_test_op op =
   match op with
@@ -286,6 +301,8 @@ let flat_exp_to_test (e : S.exp) : test =
     raise (InternalError "number in test position in blockStructure")
   | S.Float f ->
     raise (InternalError "float in test position in blockStructure")
+  | S.FunctionCall (_, _) -> 
+    raise (InternalError "function call in test position in blockStructure")
   | S.Bool b ->
     (bool_to_num b, Eq, Num 1L)
   | S.Op (ae1, op, ae2) ->
@@ -352,6 +369,19 @@ let build_cfg (stmts : S.stmt list) : cfg =
       find_blocks block_num (new_block_elems @ block_acc) ret_block s1
     | S.Assign (x, _::_::_, e) :: s1 ->
       raise (InternalError "multi-dimension array index in blockStructure")
+    | S.Function (function_id, parameter_ids, body) :: stmts ->
+       let function_start_block_num = get_block_num () in
+       (* Add the blocks of the function to the CFG in a "disconnected graph" *)
+       find_blocks function_start_block_num 
+		   [FunctionStart (S.show_id function_id)] 
+		   EndOfFunction 
+		   [body];
+       find_blocks block_num block_acc ret_block stmts
+    | S.FunctionReturn (expression) :: stmts ->
+       find_blocks block_num 
+		   (FunctionReturn (exp_to_atomic expression) :: block_acc) 
+		   ret_block 
+		   stmts
     | S.Stmts s1 :: s2 ->
       (* Treat { s1 ... sn } s1' ... sn' as though it were
          s1 ... sn s1' ... sn' *)

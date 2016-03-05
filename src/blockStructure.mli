@@ -53,6 +53,8 @@ type block_elem =
   | Call of var option * string * atomic_exp list
   (* BoundCheck (a1, a2) represents assert (a1 >= 0 && a1 < a2) *)
   | BoundCheck of atomic_exp * atomic_exp
+  | FunctionStart of string
+  | FunctionReturn of atomic_exp
 
   [@@deriving show]
 
@@ -70,6 +72,7 @@ type test = atomic_exp * test_op * atomic_exp
 
 type next_block =
   | End
+  | EndOfFunction
   | Next of int
   (* The first int is the block number if the ident is true, and the second if
    * it is false *)
