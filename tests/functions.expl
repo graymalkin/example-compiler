@@ -3,7 +3,8 @@
 
     fact := function (k) {
     	total := 0
-    	t := total + 112
+    	input total
+    	t := total + (3+(total*3))
     	while k > 0 {
     		total := total + k
     		k := k - 1
@@ -12,6 +13,6 @@
     	return total
     }
 
-    j:= fact(10)
+    j := fact(10+5)
     _ := fact(10)
 }

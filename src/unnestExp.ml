@@ -132,6 +132,9 @@ let rec unnest (stmts : stmt list) : stmt list =
     | Array es ->
       let (s_list, aes) = List.split (List.map unnest_exp_atomic es) in
       (List.flatten s_list, Array aes)
+    | FunctionCall (function_id, parameter_exprs) ->
+      let (s_list, aes) = List.split (List.map unnest_exp_atomic parameter_exprs) in
+      (List.flatten s_list, FunctionCall (function_id, aes))
 
 (* Similar to unnest_exp, but ensures that the returned exp is atomic, rather
    than just flat.  *)
@@ -182,6 +185,11 @@ let rec unnest (stmts : stmt list) : stmt list =
     | Out id -> [Out id]
     | Loc (stmt, int) ->
       unnest_stmt stmt
+    | Function(function_id, parameter_ids, body) ->
+      [Function(function_id, parameter_ids, (stmts_to_stmt (unnest_stmt body)))]
+    | FunctionReturn(expr) -> 
+      let (temp_stmts, expr) = unnest_exp_atomic expr in
+      (temp_stmts @ [FunctionReturn(expr)])
   in
 
   List.flatten (List.map unnest_stmt stmts)
