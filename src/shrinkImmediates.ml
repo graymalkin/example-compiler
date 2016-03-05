@@ -37,6 +37,7 @@ let is_imm (a : atomic_exp) : bool =
   match a with
   | Ident _ -> false
   | Num _ -> true
+  | Float _ -> true
 
 (* If the atomic_exp is a large immediate constant (takes more thatn 32 bits),
    then return the int64, else None. Relies on int64 being 2s complement. It
@@ -80,7 +81,9 @@ let shrink_imm_elem (e : block_elem) : block_elem list =
       match get_large_imm a with
       | Some n -> assign_imm dest n
       | None -> [e]
-    end
+    end 
+  | FunctionStart _ -> [e]
+  | FunctionReturn _ -> [e]
   | Ld (v1, v2, a) ->
     begin
       match get_large_imm a with
