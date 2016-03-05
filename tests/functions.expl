@@ -1,16 +1,18 @@
 {
-    fact_t := function (n, total) {
-    	if n > 0 then {
-    		return fact_t(n-1, total * n)
-    	}
-    	else {
-    		return total
-    	}
-    }
-
     fact := function (k) {
-    	return fact_t(k, 1)
+    	total := 0
+    	input total
+    	t := total + (3+(total*3))
+    	while k > 0 {
+    		total := total + k
+    		k := k - 1
+    	}
+
+    	return total+12
+
+    	a := 12 + 5
     }
 
-    j:= fact(10)
+    j := fact(10+5)
+    _ := fact(10)
 }
