@@ -280,6 +280,20 @@ let test_to_x86 ae1 op ae2 b (label : string) : instruction list =
     else
       []
 
+let size_of_int = 8
+let param_num_to_loc n = 
+  (* RDI, RSI, RDX, RCX, R8, R9 *)
+  match n with
+  | 0 -> Zr RDI
+  | 1 -> Zr RSI
+  | 2 -> Zr RDX
+  | 3 -> Zr RCX
+  | 4 -> Zr R8
+  | 5 -> Zr R9
+  | n when n > 5 ->
+     (* Look here for Off-By-One errors? *)
+     Zm (None, Some RBP, Some (Int64.of_int (-size_of_int * (n-5))))
+
 let rec be_to_x86 (underscore_labels : bool) be : instruction list =
   match be with
   | AssignOp (v, Num imm, ((T.Lt | T.Gt | T.Eq) as op), ae2) ->
@@ -336,6 +350,30 @@ let rec be_to_x86 (underscore_labels : bool) be : instruction list =
     instrs @
     instrs2 @
     [Zmov dest_src]
+  | FunctionReturn ae ->
+     (* TODO: this will blow up if the function pushes to the stack. We should 
+        pre-compute the stacksize and pop N bytes with ret *)
+     let (instrs, mov_arg) = rm_ae_to_dest_src (Zr RAX) ae in
+     instrs @ [Zmov mov_arg; Zret 0L]
+  | FunctionStart (name, params) ->
+     let name = (if underscore_labels then "_" else "") ^ name in
+     (* todo: callee save *)
+     let rec gen_instrs param_count current_param = 
+       if current_param < param_count then 
+	 let src = param_num_to_loc current_param in
+	 let var = List.nth params current_param in
+	 match src with
+	 | Zr reg -> 
+	    let dest_src = Zrm_r ((var_to_rm var), reg) in
+	    [Zmov dest_src] @ gen_instrs param_count (current_param + 1)
+	 | Zm _ -> 
+	    (* Todo: support > 6 args *)
+	    gen_instrs param_count (current_param + 1)
+       else []
+     in
+     (* Move params to the right places *)
+     let new_locations = gen_instrs (List.length params) 0 in
+     [Zlabel name] @ new_locations
   | Call (v, f, aes) ->
     let alloc_name = (if underscore_labels then "_" else "") ^ f in
     caller_save @
