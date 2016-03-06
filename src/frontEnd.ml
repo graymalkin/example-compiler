@@ -34,7 +34,7 @@ let front_end (filename : string) (print_intermediates : bool)
       Format.printf "%a@\n@\n" (pp_list SourceAst.pp_stmt) ast
     else
       ();
-    TypeCheck.type_stmts None SourceAst.Idmap.empty ast;
+    let _ = TypeCheck.type_stmts None SourceAst.Idmap.empty ast in
     TypeCheck.remove_loc ast
   else
     (Format.printf "Expects filename ending in .expl\n";

@@ -67,6 +67,9 @@ type token =
   | Input
   | Output
   | Array
+  | Function
+  | Comma
+  | Return
   [@@deriving show]
 
 type tok_loc = (token * int)

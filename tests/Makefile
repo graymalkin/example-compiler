@@ -11,7 +11,7 @@ ifeq ($(UNAME_S),Linux)
 endif
 
 COMPILER = ../src/compile.byte
-EXEC_FILES = fact.exe array.exe insert_sort.exe div.exe
+EXEC_FILES = fact.exe array.exe insert_sort.exe div.exe functions.exe
 
 .PHONY : all clean-link-files
 

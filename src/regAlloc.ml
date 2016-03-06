@@ -107,6 +107,13 @@ let count_vars_be (be : block_elem) : unit M.t =
     M.inc_var r;
     count_vars_ae ae;
     return ()
+  | FunctionReturn ae ->
+     M.do_ ;
+     count_vars_ae ae;
+     return ()
+  | FunctionStart _ ->
+     M.do_;
+     return ()
   | Ld (v1, v2, ae) ->
     M.do_ ;
     M.inc_var v1;
@@ -147,6 +154,7 @@ let count_vars_test (ae1, op, ae2) : unit M.t =
 let count_vars_nb (nb : next_block) : unit M.t =
   match nb with
   | End -> M.return ()
+  | EndOfFunction -> M.return()
   | Next i -> M.return ()
   | Branch (r, t1, t2) ->
     M.do_ ;
@@ -180,6 +188,11 @@ let reg_alloc_be (map : var Varmap.t) (be : block_elem) : block_elem =
     AssignOp (Varmap.find v map, reg_alloc_ae map ae1, op, reg_alloc_ae map ae2)
   | AssignAtom (v, ae) ->
     AssignAtom (Varmap.find v map, reg_alloc_ae map ae)
+  | FunctionReturn ae ->
+     FunctionReturn (reg_alloc_ae map ae)
+  | FunctionStart (name, params) -> 
+     let varmap_find map v = Varmap.find v map in
+     FunctionStart (name, (List.map (varmap_find map) params))
   | Ld (v1, v2, ae) ->
     Ld (Varmap.find v1 map, Varmap.find v2 map, reg_alloc_ae map ae)
   | St (v, ae1, ae2) ->
@@ -197,6 +210,7 @@ let reg_alloc_test (map : var Varmap.t) (ae1, op, ae2) : test =
 let reg_alloc_nb (map : var Varmap.t) (nb : next_block) : next_block =
   match nb with
   | End -> End
+  | EndOfFunction -> EndOfFunction
   | Next i -> Next i
   | Branch (t, t1, t2) ->
     Branch (reg_alloc_test map t, t1, t2)

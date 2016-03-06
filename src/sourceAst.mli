@@ -35,10 +35,12 @@ type exp =
   | Uop of Tokens.uop * exp
   (* Allocate a new array of given dimensions. Initialise to 0 *)
   | Array of exp list
+  | FunctionCall of id * exp list
   [@@deriving show]
 
 type stmt =
   | Assign of id * exp list * exp
+  | Function of id * id list * stmt
   (* A generalised do/while loop. Always execute the first statement, then
      the test, then repeatedly do the 2nd, then first statement and then test
      'while e s' becomes DoWhile (Stmts [], e, s) and 'do s while e' becomes
@@ -49,6 +51,7 @@ type stmt =
   | In of id
   | Out of id
   | Loc of stmt * int (* annotate a statement with it's source line number *)
+  | FunctionReturn of exp
   [@@deriving show]
 
 val pp_stmts : Format.formatter -> stmt list -> unit

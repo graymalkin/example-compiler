@@ -94,6 +94,9 @@ type token =
   | Input
   | Output
   | Array
+  | Function
+  | Comma
+  | Return
   [@@deriving show]
 
 type tok_loc = (token * int)
@@ -103,7 +106,8 @@ let keywords =
   [("do", Do); ("while",While); ("if",If); ("then",Then); ("else",Else);
    ("array",Array); (":=",Assign); ("true",True); ("input", Input);
    ("output",Output); ("false",False); ("(",Lparen); (")",Rparen);
-   ("{",Lcurly); ("}",Rcurly); ("[",Lbrac); ("]",Rbrac);
+   ("{",Lcurly); ("}",Rcurly); ("[",Lbrac); ("]",Rbrac); 
+   ("function", Function); (",", Comma); ("return", Return);
 
    (* Derive the mapping from the to_string functions to avoid duplication *)
    (uop_to_string Not, Uop Not)] @
@@ -123,8 +127,8 @@ let keyword_re =
 let number_re = Str.regexp "[0-9]+"
 let ident_re = Str.regexp "[a-zA-Z_][a-zA-Z0-9_]*"
 let space_re = Str.regexp "[ \t]+\\|//.*"
-let newline_re = Str.regexp "\n"
 let float_re = Str.regexp "[0-9]+\.[0-9]+"
+let newline_re = Str.regexp "\n\\|\r\n"
 
 (* Read all the tokens from s, using pos to index into the string and line_n
    to track the current line number, for error reporting later on. Return them

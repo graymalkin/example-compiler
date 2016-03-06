@@ -52,6 +52,8 @@ let rec might_have_effect (e : exp) : bool =
       might_have_effect e1 || might_have_effect e2
   | Uop (_, e) -> might_have_effect e
   | Array es -> List.exists might_have_effect es
+  (* TODO: Params should be checked and then the function body *)
+  | FunctionCall(_, _) -> true
 
 (* Check whether two expressions are equal, and don't have effects. This lets
    some operators remove them. Note that we are just comparing the structure of
@@ -78,6 +80,8 @@ let rec fold_exp (env : exp Idmap.t) (e : exp) : exp =
   | Num n -> Num n
   | Float f -> Float f
   | Bool b -> Bool b
+  | FunctionCall(function_id, parameter_exprs) ->
+    FunctionCall (function_id, List.map (fold_exp env) parameter_exprs)
   | Op (e1, op, e2) ->
     let o1 = fold_exp env e1 in
     let o2 = fold_exp env e2 in
@@ -87,8 +91,6 @@ let rec fold_exp (env : exp Idmap.t) (e : exp) : exp =
      | (Num 0L, T.Plus, e) | (e, T.Plus, Num 0L) -> e
      | (Float f1, T.Fplus, Float f2) -> Float (f1+.f2)
      | (Float 0.0, T.Fplus, e) | (e, T.Fplus, Float 0.0) -> e
-
-
 
      (* Minus *)
      | (Num n1, T.Minus, Num n2) -> Num (Int64.sub n1 n2)
@@ -287,6 +289,17 @@ let rec prop_stmts (env : exp Idmap.t) (stmts : stmt list)
     let (env1, o1) = prop_stmt env s in
     let (env', stmts') = prop_stmts env1 stmts in
     (env', Loc (o1, ln) :: stmts')
+  | Function(function_id, parameter_ids, body) :: stmts ->
+    let new_body = match prop_stmts env [body] with
+    | (_, []) -> raise (BadInput "Function body empty")
+    | (_, new_body) -> Stmts new_body
+    in
+    let (env, stmts) = prop_stmts env stmts in
+    (env, Function(function_id, parameter_ids, new_body)::stmts)
+  | FunctionReturn(expr)::stmts ->
+    let folded_expr = fold_exp env expr in
+    let (env, stmts) = prop_stmts env stmts in
+    (env, FunctionReturn(folded_expr)::stmts)
 
 and prop_stmt env (stmt : stmt) =
   match prop_stmts env [stmt] with
