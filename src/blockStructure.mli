@@ -53,7 +53,7 @@ type block_elem =
   | Call of var option * string * atomic_exp list
   (* BoundCheck (a1, a2) represents assert (a1 >= 0 && a1 < a2) *)
   | BoundCheck of atomic_exp * atomic_exp
-  | FunctionStart of string
+  | FunctionStart of string * var list
   | FunctionReturn of atomic_exp
 
   [@@deriving show]
@@ -89,3 +89,5 @@ type cfg = cfg_entry list
 val build_cfg : SourceAst.stmt list -> cfg
 
 val cfg_to_graphviz : Format.formatter -> cfg -> unit
+
+val id_to_var : SourceAst.id -> var

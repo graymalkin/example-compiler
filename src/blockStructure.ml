@@ -83,7 +83,7 @@ type block_elem =
   | BoundCheck of atomic_exp * atomic_exp
   (* FunctionStart (id) labels will be used to emit labels in the 
      asm to identify the start of functions *)
-  | FunctionStart of string
+  | FunctionStart of string * var list
   | FunctionReturn of atomic_exp
 
 let pp_block_elem fmt be =
@@ -108,7 +108,7 @@ let pp_block_elem fmt be =
       pp_var v
       pp_atomic_exp ae1
       pp_atomic_exp ae2
-  | FunctionStart name ->
+  | FunctionStart (name, _) ->
      Format.fprintf fmt "FunctionCall %s" name
   | FunctionReturn ae ->
      Format.fprintf fmt "return %a"
@@ -373,7 +373,7 @@ let build_cfg (stmts : S.stmt list) : cfg =
        let function_start_block_num = get_block_num () in
        (* Add the blocks of the function to the CFG in a "disconnected graph" *)
        find_blocks function_start_block_num 
-		   [FunctionStart (S.show_id function_id)] 
+		   [FunctionStart ((S.show_id function_id), (List.map id_to_var parameter_ids))] 
 		   EndOfFunction 
 		   [body];
        find_blocks block_num block_acc ret_block stmts
