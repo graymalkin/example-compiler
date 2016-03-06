@@ -72,7 +72,9 @@ let rec cfg_to_linear (next_block : int) (cfg : cfg_entry I.t) : linear list =
      List.map (fun x -> Instr x) b.elems @
      match b.next with
      | End ->
-       [Jump "exit"]
+	[Jump "exit"]
+     | EndOfFunction ->
+	[Jump "trap_fall_off"]
      | Next i ->
        if (I.find i cfg).started then
          (* We've started the next block, so we'll just jump to it *)
@@ -104,5 +106,22 @@ let rec cfg_to_linear (next_block : int) (cfg : cfg_entry I.t) : linear list =
           [CJump (v, false, "block"  ^ string_of_int t2)] @
           cfg_to_linear t1 cfg))
 
+let rec build_function_block_nums cfg = 
+  match cfg with
+  | [] -> []
+  | {bnum = block_number; elems = basic_block; _} :: bbs->
+     begin
+       match basic_block with
+       | FunctionStart _ :: _ -> 
+	  block_number :: build_function_block_nums bbs
+       | _ -> build_function_block_nums bbs
+     end
+
+let cfg_to_linear2 cfg next_block =
+  cfg_to_linear next_block cfg
+
 let cfg_to_linear cfg =
-  cfg_to_linear 1 (init_traversal cfg)
+  let it_cfg = init_traversal cfg in
+  cfg_to_linear 1 it_cfg @
+    (List.concat 
+       (List.map (cfg_to_linear2 it_cfg) (build_function_block_nums cfg)))
