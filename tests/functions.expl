@@ -1,18 +1,11 @@
 {
-    fact := function (k) {
-    	total := 0
-    	input total
-    	t := total + (3+(total*3))
-    	while k > 0 {
-    		total := total + k
-    		k := k - 1
-    	}
-
-    	return total+12
-
-    	a := 12 + 5
+    fact := function(n){
+    	total := 1
+        while n > 0 {
+            total := total * n
+            n := n - 1
+        }
     }
-
-    j := fact(10+5)
-    _ := fact(10)
+    input x
+    k := fact(x)
 }
